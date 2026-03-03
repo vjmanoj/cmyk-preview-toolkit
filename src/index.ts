@@ -1,11 +1,11 @@
 /**
  * CMYK Preview Toolkit — barrel export.
  *
- * Re-exports everything from the three core modules so consumers can
+ * Re-exports everything from all core modules so consumers can
  * import from `cmyk-preview-toolkit` directly:
  *
  * ```ts
- * import { deviceCmykToRgb, buildPaletteEntry, applyPaletteColor } from 'cmyk-preview-toolkit';
+ * import { deviceCmykToRgb, rgbToCmyk, buildPaletteEntry, deltaE76 } from 'cmyk-preview-toolkit';
  * ```
  *
  * Subpath exports are also available:
@@ -20,6 +20,7 @@ export {
     // Types
     type CMYKColor,
     type RGBColor,
+    type HSLColor,
     type ColorValue,
     // Clamping
     clamp01,
@@ -28,8 +29,12 @@ export {
     normalizeHex,
     hexToRgb,
     rgbToHex,
-    // CMYK → RGB
+    // CMYK ↔ RGB
     deviceCmykToRgb,
+    rgbToCmyk,
+    // HSL helpers
+    hexToHsl,
+    hslToHex,
     // Preview helpers
     toPreviewHex,
     toPreviewRgb,
@@ -56,3 +61,9 @@ export {
     applyPaletteColor,
     applyCustomHexColor,
 } from './state';
+
+export {
+    // Lab & perceptual distance
+    rgbToLab,
+    deltaE76,
+} from './lab';

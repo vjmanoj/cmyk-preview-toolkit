@@ -6,6 +6,9 @@ import {
     hexToRgb,
     rgbToHex,
     deviceCmykToRgb,
+    rgbToCmyk,
+    hexToHsl,
+    hslToHex,
     toPreviewHex,
     toPreviewRgb,
 } from '../src/colorTransforms';
@@ -206,4 +209,104 @@ describe('toPreviewRgb', () => {
     it('returns null for null input', () => {
         expect(toPreviewRgb(null)).toBeNull();
     });
+});
+
+// ---------------------------------------------------------------------------
+// rgbToCmyk
+// ---------------------------------------------------------------------------
+describe('rgbToCmyk', () => {
+    it('converts pure red', () => {
+        expect(rgbToCmyk(255, 0, 0)).toEqual({ c: 0, m: 1, y: 1, k: 0 });
+    });
+    it('converts pure green', () => {
+        expect(rgbToCmyk(0, 255, 0)).toEqual({ c: 1, m: 0, y: 1, k: 0 });
+    });
+    it('converts pure blue', () => {
+        expect(rgbToCmyk(0, 0, 255)).toEqual({ c: 1, m: 1, y: 0, k: 0 });
+    });
+    it('converts pure white', () => {
+        expect(rgbToCmyk(255, 255, 255)).toEqual({ c: 0, m: 0, y: 0, k: 0 });
+    });
+    it('converts pure black', () => {
+        expect(rgbToCmyk(0, 0, 0)).toEqual({ c: 0, m: 0, y: 0, k: 1 });
+    });
+    it('handles a mid-range color', () => {
+        const result = rgbToCmyk(128, 64, 32);
+        expect(result.c).toBeCloseTo(0, 1);
+        expect(result.m).toBeCloseTo(0.5, 1);
+        expect(result.y).toBeCloseTo(0.75, 1);
+        expect(result.k).toBeCloseTo(0.498, 1);
+    });
+    it('clamps out-of-range inputs', () => {
+        const result = rgbToCmyk(300, -10, 128);
+        expect(result.k).toBeGreaterThanOrEqual(0);
+        expect(result.k).toBeLessThanOrEqual(1);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// hexToHsl
+// ---------------------------------------------------------------------------
+describe('hexToHsl', () => {
+    it('converts pure red to hsl(0, 100, 50)', () => {
+        const hsl = hexToHsl('#ff0000')!;
+        expect(hsl.h).toBe(0);
+        expect(hsl.s).toBe(100);
+        expect(hsl.l).toBe(50);
+    });
+    it('converts pure white to hsl(0, 0, 100)', () => {
+        const hsl = hexToHsl('#ffffff')!;
+        expect(hsl.s).toBe(0);
+        expect(hsl.l).toBe(100);
+    });
+    it('converts pure black to hsl(0, 0, 0)', () => {
+        const hsl = hexToHsl('#000000')!;
+        expect(hsl.s).toBe(0);
+        expect(hsl.l).toBe(0);
+    });
+    it('converts a mid-range blue', () => {
+        const hsl = hexToHsl('#0000ff')!;
+        expect(hsl.h).toBe(240);
+        expect(hsl.s).toBe(100);
+        expect(hsl.l).toBe(50);
+    });
+    it('returns null for invalid input', () => {
+        expect(hexToHsl(null)).toBeNull();
+        expect(hexToHsl('invalid')).toBeNull();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// hslToHex
+// ---------------------------------------------------------------------------
+describe('hslToHex', () => {
+    it('converts hsl(0, 100, 50) to red', () => {
+        expect(hslToHex(0, 100, 50)).toBe('#ff0000');
+    });
+    it('converts hsl(120, 100, 50) to green', () => {
+        expect(hslToHex(120, 100, 50)).toBe('#00ff00');
+    });
+    it('converts hsl(240, 100, 50) to blue', () => {
+        expect(hslToHex(240, 100, 50)).toBe('#0000ff');
+    });
+    it('converts achromatic values (s=0)', () => {
+        expect(hslToHex(0, 0, 50)).toBe('#808080');
+    });
+    it('handles negative and wrap-around hue', () => {
+        expect(hslToHex(360, 100, 50)).toBe('#ff0000');
+        expect(hslToHex(-60, 100, 50)).toBe('#ff00ff');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// HSL round-trip
+// ---------------------------------------------------------------------------
+describe('hex → HSL → hex round-trip', () => {
+    const samples = ['#ff0000', '#00ff00', '#0000ff', '#ffffff', '#000000', '#808080'];
+    for (const hex of samples) {
+        it(`round-trips ${hex}`, () => {
+            const hsl = hexToHsl(hex)!;
+            expect(hslToHex(hsl.h, hsl.s, hsl.l)).toBe(hex);
+        });
+    }
 });

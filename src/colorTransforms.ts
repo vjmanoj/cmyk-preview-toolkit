@@ -35,8 +35,19 @@ export type RGBColor = {
     b: number;
 };
 
+/** A color in the HSL color space. */
+export type HSLColor = {
+    type: 'hsl';
+    /** Hue (0..360) */
+    h: number;
+    /** Saturation (0..100) */
+    s: number;
+    /** Lightness (0..100) */
+    l: number;
+};
+
 /** Union of all supported color types. */
-export type ColorValue = CMYKColor | RGBColor;
+export type ColorValue = CMYKColor | RGBColor | HSLColor;
 
 // ---------------------------------------------------------------------------
 // Clamping
@@ -97,6 +108,129 @@ export const rgbToHex = (r: number, g: number, b: number): string =>
     `#${clampByte(r).toString(16).padStart(2, '0')}${clampByte(g)
         .toString(16)
         .padStart(2, '0')}${clampByte(b).toString(16).padStart(2, '0')}`;
+
+// ---------------------------------------------------------------------------
+// RGB → CMYK (GCR approximation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert sRGB byte values to CMYK using GCR (Gray Component Replacement).
+ *
+ * **Important**: This is the standard naive GCR formula, NOT an ICC-profiled
+ * conversion. Suitable for screen previews, not press-accurate matching.
+ *
+ * @example
+ * ```ts
+ * rgbToCmyk(255, 0, 0); // => { c: 0, m: 1, y: 1, k: 0 }
+ * ```
+ */
+export const rgbToCmyk = (
+    r: number,
+    g: number,
+    b: number,
+): { c: number; m: number; y: number; k: number } => {
+    const r1 = clampByte(r) / 255;
+    const g1 = clampByte(g) / 255;
+    const b1 = clampByte(b) / 255;
+
+    const k = 1 - Math.max(r1, g1, b1);
+    if (k === 1) return { c: 0, m: 0, y: 0, k: 1 };
+
+    return {
+        c: (1 - r1 - k) / (1 - k),
+        m: (1 - g1 - k) / (1 - k),
+        y: (1 - b1 - k) / (1 - k),
+        k,
+    };
+};
+
+// ---------------------------------------------------------------------------
+// HSL helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a hex color string to HSL values.
+ *
+ * @returns `{ h, s, l }` where h is 0..360, s is 0..100, l is 0..100.
+ *          Returns `null` if the input cannot be parsed.
+ */
+export const hexToHsl = (
+    hex: string | null | undefined,
+): { h: number; s: number; l: number } | null => {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+
+    const r1 = rgb.r / 255;
+    const g1 = rgb.g / 255;
+    const b1 = rgb.b / 255;
+
+    const max = Math.max(r1, g1, b1);
+    const min = Math.min(r1, g1, b1);
+    const delta = max - min;
+
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+
+    if (delta !== 0) {
+        s = l > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+
+        if (max === r1) {
+            h = ((g1 - b1) / delta + (g1 < b1 ? 6 : 0)) * 60;
+        } else if (max === g1) {
+            h = ((b1 - r1) / delta + 2) * 60;
+        } else {
+            h = ((r1 - g1) / delta + 4) * 60;
+        }
+    }
+
+    return {
+        h: Math.round(h * 10) / 10,
+        s: Math.round(s * 1000) / 10,
+        l: Math.round(l * 1000) / 10,
+    };
+};
+
+/**
+ * Convert HSL values to a lowercase 6-digit hex string.
+ *
+ * @param h Hue (0..360)
+ * @param s Saturation (0..100)
+ * @param l Lightness (0..100)
+ */
+export const hslToHex = (h: number, s: number, l: number): string => {
+    const sNorm = Math.max(0, Math.min(100, s)) / 100;
+    const lNorm = Math.max(0, Math.min(100, l)) / 100;
+    const hNorm = ((h % 360) + 360) % 360;
+
+    const c = (1 - Math.abs(2 * lNorm - 1)) * sNorm;
+    const x = c * (1 - Math.abs(((hNorm / 60) % 2) - 1));
+    const m = lNorm - c / 2;
+
+    let r1 = 0,
+        g1 = 0,
+        b1 = 0;
+
+    if (hNorm < 60) {
+        r1 = c; g1 = x; b1 = 0;
+    } else if (hNorm < 120) {
+        r1 = x; g1 = c; b1 = 0;
+    } else if (hNorm < 180) {
+        r1 = 0; g1 = c; b1 = x;
+    } else if (hNorm < 240) {
+        r1 = 0; g1 = x; b1 = c;
+    } else if (hNorm < 300) {
+        r1 = x; g1 = 0; b1 = c;
+    } else {
+        r1 = c; g1 = 0; b1 = x;
+    }
+
+    return rgbToHex(
+        Math.round((r1 + m) * 255),
+        Math.round((g1 + m) * 255),
+        Math.round((b1 + m) * 255),
+    );
+};
 
 // ---------------------------------------------------------------------------
 // DeviceCMYK → sRGB polynomial (from pdf.js)

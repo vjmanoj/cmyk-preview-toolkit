@@ -1,6 +1,6 @@
 {
     "name": "cmyk-preview-toolkit",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "Dual CMYK/sRGB color handling for browser-based PDF editors. Maintains press-accurate CMYK source colors alongside sRGB preview values.",
     "license": "MIT",
     "author": "Manojkumar Vishwakarma <manojvistv@gmail.com>",
@@ -33,20 +33,27 @@
     "files": [
         "dist",
         "README.md",
-        "LICENSE"
+        "LICENSE",
+        "CHANGELOG.md"
     ],
     "scripts": {
         "build": "tsup",
         "test": "vitest run",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit",
-        "lint": "tsc --noEmit",
+        "lint": "eslint 'src/**/*.ts' 'react/**/*.ts' 'tests/**/*.ts'",
+        "format": "prettier --write 'src/**/*.ts' 'react/**/*.ts' 'tests/**/*.ts'",
+        "format:check": "prettier --check 'src/**/*.ts' 'react/**/*.ts' 'tests/**/*.ts'",
         "prepublishOnly": "npm run build"
     },
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
         "@types/react": "^19.2.14",
+        "eslint": "^10.0.2",
+        "prettier": "^3.8.1",
         "tsup": "^8.0.0",
         "typescript": "^5.4.0",
+        "typescript-eslint": "^8.56.1",
         "vitest": "^2.0.0"
     },
     "peerDependencies": {

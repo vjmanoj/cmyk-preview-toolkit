@@ -9,12 +9,16 @@ Browsers render everything in sRGB. When pdf.js rasterizes a CMYK PDF, the previ
 ## Features
 
 - **pdf.js-compatible CMYK → sRGB** polynomial conversion
+- **RGB → CMYK** (GCR approximation) for reverse conversion
+- **HSL color space** helpers (`hexToHsl`, `hslToHex`)
+- **CIE76 Delta-E** perceptual distance metric for palette snapping
 - **Palette snapping** — match EyeDropper / color-input samples to the nearest source color
 - **Immutable state helpers** for text, background, and border color roles
 - **React hook** (`usePaletteColor`) for automatic snapping in React apps
 - Full **TypeScript** types and JSDoc
 - **ESM + CJS** output with tree-shaking support
 - **Zero runtime dependencies**
+- **GitHub Actions CI** on Node 18/20/22
 
 ## Installation
 
@@ -89,9 +93,12 @@ const ColorPicker = ({ element, palette, onChange }) => {
 | Export | Description |
 |---|---|
 | `deviceCmykToRgb(c, m, y, k)` | Convert CMYK (0..1) to sRGB bytes using the pdf.js polynomial |
+| `rgbToCmyk(r, g, b)` | Convert sRGB bytes to CMYK using GCR approximation |
 | `normalizeHex(input)` | Normalize any hex string to lowercase 6-digit `#rrggbb` |
 | `hexToRgb(hex)` | Parse hex to `{ r, g, b }` |
 | `rgbToHex(r, g, b)` | Format RGB bytes as hex |
+| `hexToHsl(hex)` | Parse hex to `{ h, s, l }` (h: 0..360, s/l: 0..100) |
+| `hslToHex(h, s, l)` | Format HSL values as hex |
 | `toPreviewHex(color)` | Get sRGB hex preview from a `CMYKColor` or `RGBColor` |
 | `toPreviewRgb(color)` | Get sRGB `{ r, g, b }` preview from a `CMYKColor` or `RGBColor` |
 | `clamp01(n)` | Clamp to 0..1 |
@@ -103,9 +110,16 @@ const ColorPicker = ({ element, palette, onChange }) => {
 |---|---|
 | `buildPaletteEntry(source, extra?)` | Build a `PaletteEntry` with computed preview fields |
 | `normalizePalette(entries)` | Fill missing preview fields for an array of partial entries |
-| `findNearestPaletteEntry(palette, hex, options?)` | Find the closest palette entry by RGB distance |
+| `findNearestPaletteEntry(palette, hex, options?)` | Find the closest palette entry (supports RGB and Delta-E distance) |
 | `shouldSnapToPalette(result, options?)` | Decide if the nearest match is close enough to snap |
 | `rgbDistanceSq(a, b)` | Squared Euclidean distance between two RGB colors |
+
+### Lab & Perceptual Distance
+
+| Export | Description |
+|---|---|
+| `rgbToLab(r, g, b)` | Convert sRGB bytes to CIE Lab (D65 illuminant) |
+| `deltaE76(a, b)` | CIE76 Delta-E distance between two `{ r, g, b }` colors |
 
 ### State (`cmyk-preview-toolkit/state`)
 
@@ -125,29 +139,13 @@ const ColorPicker = ({ element, palette, onChange }) => {
 ```ts
 type CMYKColor = { type: 'cmyk'; c: number; m: number; y: number; k: number };
 type RGBColor  = { type: 'rgb';  r: number; g: number; b: number };
+type HSLColor  = { type: 'hsl';  h: number; s: number; l: number };
 type ColorRole = 'text' | 'background' | 'border';
 
-interface PaletteEntry {
-  source: CMYKColor | RGBColor;
-  previewHex: string;
-  previewRgb: { r: number; g: number; b: number };
-}
-
-interface DualColorState {
-  color?: string | null;
-  colorSource?: unknown;
-  colorPreviewRgb?: { r: number; g: number; b: number };
-  bgColor?: string | null;
-  bgColorSource?: unknown;
-  bgColorPreviewRgb?: { r: number; g: number; b: number };
-  borderColor?: string | null;
-  borderColorSource?: unknown;
-  borderColorPreviewRgb?: { r: number; g: number; b: number };
-}
-
 interface SnapOptions {
-  maxDistance?: number;      // default: 75
-  dominanceRatio?: number;  // default: 0.6
+  maxDistance?: number;        // default: 75 (RGB) or ~10 (Delta-E)
+  dominanceRatio?: number;    // default: 0.6
+  distanceMetric?: 'rgb' | 'deltaE76';  // default: 'rgb'
 }
 ```
 
@@ -155,8 +153,9 @@ interface SnapOptions {
 
 | Option | Default | Description |
 |---|---|---|
-| `maxDistance` | `75` | Max Euclidean distance in RGB space for a direct snap |
+| `maxDistance` | `75` | Max distance for a direct snap |
 | `dominanceRatio` | `0.6` | Snap if `bestDistance < secondBestDistance × ratio` |
+| `distanceMetric` | `'rgb'` | `'rgb'` for Euclidean sRGB, `'deltaE76'` for perceptual Lab |
 
 ## Integrating with pdf-lib
 

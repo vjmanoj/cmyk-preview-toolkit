@@ -15,6 +15,7 @@ import {
     toPreviewHex,
     toPreviewRgb,
 } from './colorTransforms';
+import { deltaE76 } from './lab';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -38,8 +39,9 @@ export interface PaletteEntry {
 /** Options that control palette snapping behavior. */
 export interface SnapOptions {
     /**
-     * Maximum Euclidean distance in RGB space for a color to be considered
-     * a match. Default: `75`.
+     * Maximum distance for a color to be considered a match.
+     * For `'rgb'` metric this is Euclidean distance (default: `75`).
+     * For `'deltaE76'` metric, recommended value is `10`.
      */
     maxDistance?: number;
     /**
@@ -48,6 +50,13 @@ export interface SnapOptions {
      * Default: `0.6`.
      */
     dominanceRatio?: number;
+    /**
+     * Distance function to use for palette matching.
+     * - `'rgb'` — Euclidean distance in sRGB space (default, fast)
+     * - `'deltaE76'` — CIE76 Delta-E in Lab space (perceptually uniform)
+     * Default: `'rgb'`
+     */
+    distanceMetric?: 'rgb' | 'deltaE76';
 }
 
 // ---------------------------------------------------------------------------
@@ -153,8 +162,15 @@ export const findNearestPaletteEntry = (
     let bestDistance = Number.POSITIVE_INFINITY;
     let secondBestDistance = Number.POSITIVE_INFINITY;
 
+    const computeDistance =
+        (options.distanceMetric ?? 'rgb') === 'deltaE76'
+            ? (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) =>
+                deltaE76(a, b)
+            : (a: { r: number; g: number; b: number }, b: { r: number; g: number; b: number }) =>
+                Math.sqrt(rgbDistanceSq(a, b));
+
     for (const candidate of palette) {
-        const distance = Math.sqrt(rgbDistanceSq(candidate.previewRgb, targetRgb));
+        const distance = computeDistance(candidate.previewRgb, targetRgb);
         if (distance < bestDistance) {
             secondBestDistance = bestDistance;
             bestDistance = distance;

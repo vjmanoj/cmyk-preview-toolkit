@@ -162,3 +162,36 @@ describe('shouldSnapToPalette', () => {
         ).toBe(true);
     });
 });
+
+// ---------------------------------------------------------------------------
+// findNearestPaletteEntry with deltaE76
+// ---------------------------------------------------------------------------
+describe('findNearestPaletteEntry with deltaE76', () => {
+    const palette: PaletteEntry[] = [
+        buildPaletteEntry({ type: 'rgb', r: 255, g: 0, b: 0 }),   // red
+        buildPaletteEntry({ type: 'rgb', r: 0, g: 255, b: 0 }),   // green
+        buildPaletteEntry({ type: 'rgb', r: 0, g: 0, b: 255 }),   // blue
+    ];
+
+    it('finds exact match with deltaE76', () => {
+        const result = findNearestPaletteEntry(palette, '#ff0000', { distanceMetric: 'deltaE76' });
+        expect(result.entry!.previewHex).toBe('#ff0000');
+        expect(result.distance).toBe(0);
+    });
+
+    it('finds nearest with deltaE76 and distance is in Lab units', () => {
+        const result = findNearestPaletteEntry(palette, '#f50505', { distanceMetric: 'deltaE76' });
+        expect(result.entry!.previewHex).toBe('#ff0000');
+        expect(result.distance).toBeGreaterThan(0);
+        // Delta-E for very similar reds should be small
+        expect(result.distance).toBeLessThan(10);
+    });
+
+    it('returns different distances than RGB metric for same input', () => {
+        const hex = '#808000'; // olive — equidistant in RGB from R and G
+        const rgbResult = findNearestPaletteEntry(palette, hex, { distanceMetric: 'rgb' });
+        const labResult = findNearestPaletteEntry(palette, hex, { distanceMetric: 'deltaE76' });
+        // The results might pick different entries or at least have different distances
+        expect(labResult.distance).not.toBe(rgbResult.distance);
+    });
+});
