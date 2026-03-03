@@ -1,0 +1,84 @@
+{
+    "name": "cmyk-preview-toolkit",
+    "version": "1.0.0",
+    "description": "Dual CMYK/sRGB color handling for browser-based PDF editors. Maintains press-accurate CMYK source colors alongside sRGB preview values.",
+    "license": "MIT",
+    "author": "Manojkumar Vishwakarma <manojvistv@gmail.com>",
+    "type": "module",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        },
+        "./palette": {
+            "types": "./dist/palette.d.ts",
+            "import": "./dist/palette.js",
+            "require": "./dist/palette.cjs"
+        },
+        "./state": {
+            "types": "./dist/state.d.ts",
+            "import": "./dist/state.js",
+            "require": "./dist/state.cjs"
+        },
+        "./react": {
+            "types": "./dist/usePaletteColor.d.ts",
+            "import": "./dist/usePaletteColor.js",
+            "require": "./dist/usePaletteColor.cjs"
+        }
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --noEmit",
+        "lint": "tsc --noEmit",
+        "prepublishOnly": "npm run build"
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.14",
+        "tsup": "^8.0.0",
+        "typescript": "^5.4.0",
+        "vitest": "^2.0.0"
+    },
+    "peerDependencies": {
+        "react": ">=17"
+    },
+    "peerDependenciesMeta": {
+        "react": {
+            "optional": true
+        }
+    },
+    "keywords": [
+        "cmyk",
+        "srgb",
+        "color",
+        "pdf",
+        "preview",
+        "palette",
+        "dual-color",
+        "print",
+        "press",
+        "pdfjs",
+        "pdf-lib"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vjmanoj/cmyk-preview-toolkit.git"
+    },
+    "homepage": "https://github.com/vjmanoj/cmyk-preview-toolkit#readme",
+    "bugs": {
+        "url": "https://github.com/vjmanoj/cmyk-preview-toolkit/issues"
+    },
+    "engines": {
+        "node": ">=18"
+    }
+}

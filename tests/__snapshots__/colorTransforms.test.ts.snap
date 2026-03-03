@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`deviceCmykToRgb > converts a known CMYK fixture to the expected RGB 1`] = `
+{
+  "b": 205,
+  "g": 181,
+  "r": 201,
+}
+`;
