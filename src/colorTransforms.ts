@@ -207,9 +207,9 @@ export const hslToHex = (h: number, s: number, l: number): string => {
     const x = c * (1 - Math.abs(((hNorm / 60) % 2) - 1));
     const m = lNorm - c / 2;
 
-    let r1 = 0,
-        g1 = 0,
-        b1 = 0;
+    let r1: number;
+    let g1: number;
+    let b1: number;
 
     if (hNorm < 60) {
         r1 = c; g1 = x; b1 = 0;
@@ -330,7 +330,7 @@ export const deviceCmykToRgb = (
  * channels are clamped and formatted directly.
  */
 export const toPreviewHex = (
-    color: CMYKColor | RGBColor | null | undefined
+    color: CMYKColor | RGBColor | HSLColor | null | undefined
 ): string | null => {
     if (!color) return null;
     if (color.type === 'cmyk') {
@@ -339,6 +339,9 @@ export const toPreviewHex = (
     }
     if (color.type === 'rgb') {
         return rgbToHex(color.r, color.g, color.b);
+    }
+    if (color.type === 'hsl') {
+        return hslToHex(color.h, color.s, color.l);
     }
     return null;
 };
@@ -350,7 +353,7 @@ export const toPreviewHex = (
  * channels are clamped directly.
  */
 export const toPreviewRgb = (
-    color: CMYKColor | RGBColor | null | undefined
+    color: CMYKColor | RGBColor | HSLColor | null | undefined
 ): { r: number; g: number; b: number } | null => {
     if (!color) return null;
     if (color.type === 'cmyk') {
@@ -362,6 +365,10 @@ export const toPreviewRgb = (
             g: clampByte(color.g),
             b: clampByte(color.b),
         };
+    }
+    if (color.type === 'hsl') {
+        const hex = hslToHex(color.h, color.s, color.l);
+        return hexToRgb(hex);
     }
     return null;
 };

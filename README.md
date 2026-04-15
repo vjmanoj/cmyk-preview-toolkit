@@ -154,8 +154,8 @@ const distance = deltaE76({ r: 255, g: 0, b: 0 }, { r: 250, g: 10, b: 5 });
 | `rgbToHex(r, g, b)` | Format RGB bytes as hex |
 | `hexToHsl(hex)` | Parse hex to `{ h, s, l }` (h: 0..360, s/l: 0..100) |
 | `hslToHex(h, s, l)` | Format HSL values as hex |
-| `toPreviewHex(color)` | Get sRGB hex preview from a `CMYKColor` or `RGBColor` |
-| `toPreviewRgb(color)` | Get sRGB `{ r, g, b }` preview from a `CMYKColor` or `RGBColor` |
+| `toPreviewHex(color)` | Get sRGB hex preview from a `CMYKColor`, `RGBColor`, or `HSLColor` |
+| `toPreviewRgb(color)` | Get sRGB `{ r, g, b }` preview from a `CMYKColor`, `RGBColor`, or `HSLColor` |
 | `clamp01(n)` | Clamp to 0..1 |
 | `clampByte(n)` | Clamp to 0..255 and round |
 
@@ -173,6 +173,7 @@ const distance = deltaE76({ r: 255, g: 0, b: 0 }, { r: 250, g: 10, b: 5 });
 | `buildPaletteEntry(source, extra?)` | Build a `PaletteEntry` with computed preview fields |
 | `normalizePalette(entries)` | Fill missing preview fields for an array of partial entries |
 | `findNearestPaletteEntry(palette, hex, options?)` | Find the closest palette entry (supports RGB and Delta-E distance) |
+| `findNearestForMany(palette, hexValues, options?)` | Batch-match multiple hex values with pre-computed Lab cache |
 | `shouldSnapToPalette(result, options?)` | Decide if the nearest match is close enough to snap |
 | `rgbDistanceSq(a, b)` | Squared Euclidean distance between two RGB colors |
 
@@ -182,6 +183,20 @@ const distance = deltaE76({ r: 255, g: 0, b: 0 }, { r: 250, g: 10, b: 5 });
 |---|---|
 | `applyPaletteColor(element, role, entry)` | Set preview + source from a palette entry (immutable) |
 | `applyCustomHexColor(element, role, hex)` | Set preview from hex, clear source (immutable) |
+
+### Validation (`cmyk-preview-toolkit`)
+
+| Export | Description |
+|---|---|
+| `validateCmyk(c, m, y, k)` | Throw `RangeError` if any CMYK channel is `NaN` or `Infinity` |
+| `validateRgb(r, g, b)` | Throw `RangeError` if any RGB channel is `NaN` or `Infinity` |
+| `validateHsl(h, s, l)` | Throw `RangeError` if any HSL channel is `NaN` or `Infinity` |
+
+### CSS Parsing (`cmyk-preview-toolkit`)
+
+| Export | Description |
+|---|---|
+| `parseCssColor(input)` | Parse CSS color strings (`#hex`, `rgb()`, `hsl()`) into `ColorValue` |
 
 ### React (`cmyk-preview-toolkit/react`)
 

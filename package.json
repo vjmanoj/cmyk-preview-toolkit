@@ -1,6 +1,6 @@
 {
     "name": "cmyk-preview-toolkit",
-    "version": "2.0.1",
+    "version": "3.0.0",
     "description": "Dual CMYK/sRGB color handling for browser-based PDF editors. Convert between CMYK, RGB, HSL, and CIE Lab color spaces with press-accurate preview and palette snapping.",
     "license": "MIT",
     "author": "Manojkumar Vishwakarma <manojvistv@gmail.com>",

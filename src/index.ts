@@ -44,12 +44,14 @@ export {
     // Types
     type PaletteEntry,
     type SnapOptions,
+    type BatchMatchResult,
     // Builders
     buildPaletteEntry,
     normalizePalette,
     // Distance & snapping
     rgbDistanceSq,
     findNearestPaletteEntry,
+    findNearestForMany,
     shouldSnapToPalette,
 } from './palette';
 
@@ -67,3 +69,16 @@ export {
     rgbToLab,
     deltaE76,
 } from './lab';
+
+export {
+    // Validation utilities
+    validateCmyk,
+    validateRgb,
+    validateHsl,
+} from './validate';
+
+export {
+    // CSS color parsing
+    parseCssColor,
+} from './parseCssColor';
+

@@ -1,13 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import type {
+    PaletteEntry} from '../src/palette';
 import {
     buildPaletteEntry,
     normalizePalette,
     rgbDistanceSq,
     findNearestPaletteEntry,
-    shouldSnapToPalette,
-    PaletteEntry,
+    findNearestForMany,
+    shouldSnapToPalette
 } from '../src/palette';
-import { CMYKColor, RGBColor } from '../src/colorTransforms';
+import type { CMYKColor, RGBColor } from '../src/colorTransforms';
 
 // ---------------------------------------------------------------------------
 // buildPaletteEntry
@@ -193,5 +195,73 @@ describe('findNearestPaletteEntry with deltaE76', () => {
         const labResult = findNearestPaletteEntry(palette, hex, { distanceMetric: 'deltaE76' });
         // The results might pick different entries or at least have different distances
         expect(labResult.distance).not.toBe(rgbResult.distance);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// findNearestForMany — batch matching
+// ---------------------------------------------------------------------------
+describe('findNearestForMany', () => {
+    const palette: PaletteEntry[] = [
+        buildPaletteEntry({ type: 'rgb', r: 255, g: 0, b: 0 }),   // red
+        buildPaletteEntry({ type: 'rgb', r: 0, g: 255, b: 0 }),   // green
+        buildPaletteEntry({ type: 'rgb', r: 0, g: 0, b: 255 }),   // blue
+    ];
+
+    it('returns correct results for multiple hex values', () => {
+        const results = findNearestForMany(palette, ['#ff0000', '#00ff00', '#0000ff']);
+        expect(results).toHaveLength(3);
+        expect(results[0].entry!.previewHex).toBe('#ff0000');
+        expect(results[0].distance).toBe(0);
+        expect(results[1].entry!.previewHex).toBe('#00ff00');
+        expect(results[1].distance).toBe(0);
+        expect(results[2].entry!.previewHex).toBe('#0000ff');
+        expect(results[2].distance).toBe(0);
+    });
+
+    it('handles empty hex array', () => {
+        const results = findNearestForMany(palette, []);
+        expect(results).toHaveLength(0);
+    });
+
+    it('handles empty palette', () => {
+        const results = findNearestForMany([], ['#ff0000']);
+        expect(results).toHaveLength(1);
+        expect(results[0].entry).toBeNull();
+    });
+
+    it('handles invalid hex values in batch', () => {
+        const results = findNearestForMany(palette, ['#ff0000', 'invalid', '#0000ff']);
+        expect(results).toHaveLength(3);
+        expect(results[0].entry!.previewHex).toBe('#ff0000');
+        expect(results[1].entry).toBeNull();
+        expect(results[2].entry!.previewHex).toBe('#0000ff');
+    });
+
+    it('produces same results as individual calls with RGB metric', () => {
+        const hexValues = ['#ff0000', '#f00010', '#808000'];
+        const batch = findNearestForMany(palette, hexValues);
+        for (let i = 0; i < hexValues.length; i++) {
+            const individual = findNearestPaletteEntry(palette, hexValues[i]);
+            expect(batch[i].entry?.previewHex).toBe(individual.entry?.previewHex);
+            expect(batch[i].distance).toBeCloseTo(individual.distance, 10);
+        }
+    });
+
+    it('produces same results as individual calls with deltaE76 metric', () => {
+        const hexValues = ['#ff0000', '#f00010', '#808000'];
+        const options = { distanceMetric: 'deltaE76' as const };
+        const batch = findNearestForMany(palette, hexValues, options);
+        for (let i = 0; i < hexValues.length; i++) {
+            const individual = findNearestPaletteEntry(palette, hexValues[i], options);
+            expect(batch[i].entry?.previewHex).toBe(individual.entry?.previewHex);
+            expect(batch[i].distance).toBeCloseTo(individual.distance, 10);
+        }
+    });
+
+    it('normalizes hex values in results', () => {
+        const results = findNearestForMany(palette, ['#FF0000', '#f00']);
+        expect(results[0].hex).toBe('#ff0000');
+        expect(results[1].hex).toBe('#ff0000');
     });
 });

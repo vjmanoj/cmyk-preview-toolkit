@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyPaletteColor, applyCustomHexColor, DualColorState } from '../src/state';
+import type { DualColorState } from '../src/state';
+import { applyPaletteColor, applyCustomHexColor } from '../src/state';
 import { buildPaletteEntry } from '../src/palette';
 
 // ---------------------------------------------------------------------------

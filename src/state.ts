@@ -8,7 +8,7 @@
  * @module state
  */
 
-import { PaletteEntry } from './palette';
+import type { PaletteEntry } from './palette';
 import { normalizeHex, hexToRgb } from './colorTransforms';
 
 // ---------------------------------------------------------------------------

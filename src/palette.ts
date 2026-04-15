@@ -7,15 +7,16 @@
  * @module palette
  */
 
-import {
+import type {
     CMYKColor,
-    RGBColor,
+    RGBColor} from './colorTransforms';
+import {
     normalizeHex,
     hexToRgb,
     toPreviewHex,
     toPreviewRgb,
 } from './colorTransforms';
-import { deltaE76 } from './lab';
+import { deltaE76, rgbToLab } from './lab';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,6 +58,18 @@ export interface SnapOptions {
      * Default: `'rgb'`
      */
     distanceMetric?: 'rgb' | 'deltaE76';
+}
+
+/** Result of a batch palette match for a single hex value. */
+export interface BatchMatchResult {
+    /** The input hex value (normalized). */
+    hex: string;
+    /** The closest palette entry, or `null` if no match. */
+    entry: PaletteEntry | null;
+    /** Distance to the best match. */
+    distance: number;
+    /** Distance to the second-best match. */
+    secondDistance: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -185,6 +198,110 @@ export const findNearestPaletteEntry = (
         distance: bestDistance,
         secondDistance: secondBestDistance,
     };
+};
+
+/**
+ * Find the nearest palette entry for each hex value in a batch.
+ *
+ * When using the `deltaE76` metric this is significantly faster than
+ * calling `findNearestPaletteEntry` in a loop because it pre-computes
+ * Lab values for the palette once and reuses them across all inputs.
+ *
+ * @example
+ * ```ts
+ * const results = findNearestForMany(
+ *   palette,
+ *   ['#ff0000', '#00ff00', '#1dc4e2'],
+ *   { distanceMetric: 'deltaE76' }
+ * );
+ * results.forEach(r => console.log(r.hex, r.entry?.previewHex, r.distance));
+ * ```
+ */
+export const findNearestForMany = (
+    palette: PaletteEntry[],
+    hexValues: string[],
+    options: SnapOptions = {}
+): BatchMatchResult[] => {
+    if (palette.length === 0) {
+        return hexValues.map((hex) => ({
+            hex,
+            entry: null,
+            distance: Number.POSITIVE_INFINITY,
+            secondDistance: Number.POSITIVE_INFINITY,
+        }));
+    }
+
+    const metric = options.distanceMetric ?? 'rgb';
+
+    // Pre-compute palette Lab values for deltaE76 to avoid N×M redundant conversions
+    const paletteLab =
+        metric === 'deltaE76'
+            ? palette.map((p) => rgbToLab(p.previewRgb.r, p.previewRgb.g, p.previewRgb.b))
+            : null;
+
+    return hexValues.map((hex) => {
+        const normalized = normalizeHex(hex);
+        if (!normalized) {
+            return {
+                hex,
+                entry: null,
+                distance: Number.POSITIVE_INFINITY,
+                secondDistance: Number.POSITIVE_INFINITY,
+            };
+        }
+
+        const targetRgb = hexToRgb(normalized);
+        if (!targetRgb) {
+            return {
+                hex,
+                entry: null,
+                distance: Number.POSITIVE_INFINITY,
+                secondDistance: Number.POSITIVE_INFINITY,
+            };
+        }
+
+        let bestEntry: PaletteEntry | null = null;
+        let bestDistance = Number.POSITIVE_INFINITY;
+        let secondBestDistance = Number.POSITIVE_INFINITY;
+
+        if (paletteLab) {
+            // deltaE76 path — use pre-computed Lab for palette
+            const targetLab = rgbToLab(targetRgb.r, targetRgb.g, targetRgb.b);
+            for (let i = 0; i < palette.length; i++) {
+                const pLab = paletteLab[i];
+                const dl = targetLab.l - pLab.l;
+                const da = targetLab.a - pLab.a;
+                const db = targetLab.b - pLab.b;
+                const distance = Math.sqrt(dl * dl + da * da + db * db);
+                if (distance < bestDistance) {
+                    secondBestDistance = bestDistance;
+                    bestDistance = distance;
+                    bestEntry = palette[i];
+                } else if (distance < secondBestDistance) {
+                    secondBestDistance = distance;
+                }
+            }
+        } else {
+            // RGB path
+            for (const candidate of palette) {
+                const distance = Math.sqrt(rgbDistanceSq(candidate.previewRgb, targetRgb));
+                if (distance < bestDistance) {
+                    secondBestDistance = bestDistance;
+                    bestDistance = distance;
+                    bestEntry = candidate;
+                } else if (distance < secondBestDistance) {
+                    secondBestDistance = distance;
+                }
+            }
+        }
+
+        return {
+            hex: normalized,
+            entry: bestEntry,
+            distance: bestDistance,
+            secondDistance: secondBestDistance,
+        };
+    });
 };
 
 /**

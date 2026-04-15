@@ -9,17 +9,19 @@
  */
 
 import { useCallback } from 'react';
-import {
+import type {
     PaletteEntry,
+    SnapOptions} from '../src/palette';
+import {
     findNearestPaletteEntry,
-    shouldSnapToPalette,
-    SnapOptions,
+    shouldSnapToPalette
 } from '../src/palette';
+import type {
+    DualColorState,
+    ColorRole} from '../src/state';
 import {
     applyPaletteColor,
-    applyCustomHexColor,
-    DualColorState,
-    ColorRole,
+    applyCustomHexColor
 } from '../src/state';
 
 /** Configuration for the `usePaletteColor` hook. */

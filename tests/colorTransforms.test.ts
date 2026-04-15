@@ -310,3 +310,85 @@ describe('hex → HSL → hex round-trip', () => {
         });
     }
 });
+
+// ---------------------------------------------------------------------------
+// RGB → CMYK → RGB round-trip drift
+// ---------------------------------------------------------------------------
+describe('RGB → CMYK → RGB round-trip drift', () => {
+    const samples = [
+        { r: 255, g: 0, b: 0, label: 'pure red' },
+        { r: 0, g: 255, b: 0, label: 'pure green' },
+        { r: 0, g: 0, b: 255, label: 'pure blue' },
+        { r: 255, g: 255, b: 255, label: 'white' },
+        { r: 0, g: 128, b: 255, label: 'sky blue' },
+        { r: 100, g: 100, b: 100, label: 'mid gray' },
+        { r: 200, g: 50, b: 25, label: 'warm red' },
+    ];
+
+    for (const { r, g, b, label } of samples) {
+        it(`measures drift for ${label} rgb(${r},${g},${b})`, () => {
+            const cmyk = rgbToCmyk(r, g, b);
+            const back = deviceCmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+
+            // GCR→polynomial is NOT lossless. Document & regression-test
+            // the expected drift bounds per channel.
+            // Measured max: ~107 (blue channel of pure blue).
+            // Saturated primaries drift more because the polynomial
+            // is optimized for visual fidelity, not algebraic round-trip.
+            const dr = Math.abs(back.r - r);
+            const dg = Math.abs(back.g - g);
+            const db = Math.abs(back.b - b);
+
+            // Drift should stay under 110 units per channel
+            expect(dr).toBeLessThan(110);
+            expect(dg).toBeLessThan(110);
+            expect(db).toBeLessThan(110);
+        });
+    }
+
+    it('pure black round-trips close to the polynomial black', () => {
+        const cmyk = rgbToCmyk(0, 0, 0);
+        expect(cmyk).toEqual({ c: 0, m: 0, y: 0, k: 1 });
+        const back = deviceCmykToRgb(cmyk.c, cmyk.m, cmyk.y, cmyk.k);
+        // pdf.js polynomial does not yield exact (0,0,0) for K=1
+        expect(back.r).toBeLessThanOrEqual(55);
+        expect(back.g).toBeLessThanOrEqual(55);
+        expect(back.b).toBeLessThanOrEqual(55);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// toPreviewHex — HSL support
+// ---------------------------------------------------------------------------
+describe('toPreviewHex — HSL', () => {
+    it('converts HSL red to hex', () => {
+        const hex = toPreviewHex({ type: 'hsl', h: 0, s: 100, l: 50 });
+        expect(hex).toBe('#ff0000');
+    });
+
+    it('converts HSL green to hex', () => {
+        const hex = toPreviewHex({ type: 'hsl', h: 120, s: 100, l: 50 });
+        expect(hex).toBe('#00ff00');
+    });
+
+    it('converts HSL achromatic to hex', () => {
+        const hex = toPreviewHex({ type: 'hsl', h: 0, s: 0, l: 50 });
+        expect(hex).toBe('#808080');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// toPreviewRgb — HSL support
+// ---------------------------------------------------------------------------
+describe('toPreviewRgb — HSL', () => {
+    it('converts HSL red to RGB', () => {
+        const rgb = toPreviewRgb({ type: 'hsl', h: 0, s: 100, l: 50 });
+        expect(rgb).toEqual({ r: 255, g: 0, b: 0 });
+    });
+
+    it('converts HSL blue to RGB', () => {
+        const rgb = toPreviewRgb({ type: 'hsl', h: 240, s: 100, l: 50 });
+        expect(rgb).toEqual({ r: 0, g: 0, b: 255 });
+    });
+});
+

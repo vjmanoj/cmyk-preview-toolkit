@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [3.0.0] - 2026-04-15
+
+### Added
+- `findNearestForMany()` — batch palette matching with pre-computed Lab cache for deltaE76 metric
+- `BatchMatchResult` type for batch matching results
+- `parseCssColor()` — parse CSS color strings (`rgb()`, `rgba()`, `hsl()`, `hsla()`, hex) into `ColorValue`
+- `validateCmyk()` / `validateRgb()` / `validateHsl()` — opt-in validation with descriptive `RangeError` messages
+- RGB → CMYK → RGB round-trip drift regression tests
+- Lint step added to GitHub Actions CI pipeline
+
+### Changed
+- `toPreviewHex()` and `toPreviewRgb()` now accept `HSLColor` inputs (previously only CMYK and RGB)
+
 ## [2.0.0] - 2026-03-04
 
 ### Added
